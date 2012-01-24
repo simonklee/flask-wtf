@@ -18,11 +18,6 @@ try:
 
     __all__ += ['QuerySelectField',
                 'QuerySelectMultipleField']
-
-    for field in (QuerySelectField,
-                  QuerySelectMultipleField):
-
-        setattr(fields, field.__name__, field)
 except ImportError:
     pass
 
