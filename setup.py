@@ -4,38 +4,26 @@ Flask-WTF
 
 Simple integration of Flask and WTForms, including CSRF, file upload
 and Recaptcha integration.
-
-Links
-`````
-
-* `documentation <http://packages.python.org/Flask-WTF>`_
-* `development version
-  <http://bitbucket.org/danjac/flask-wtf/get/tip.gz#egg=Flask-WTF>`_
-
-
 """
 from setuptools import setup
-
 
 setup(
     name='Flask-WTF',
     version='0.5.2',
-    url='http://bitbucket.org/danjac/flask-wtf',
+    url='http://github.org/simonz05/flask-wtf',
     license='BSD',
     author='Dan Jacob',
     author_email='danjac354@gmail.com',
     description='Simple integration of Flask and WTForms',
     long_description=__doc__,
-    packages=['flaskext', 
-              'flaskext.wtf', 
-              'flaskext.wtf.recaptcha'],
-    namespace_packages=['flaskext'],
+    packages=['flask_wtf'],
     test_suite='nose.collector',
+    include_package_data=True,
     zip_safe=False,
     platforms='any',
     install_requires=[
         'Flask',
-        'WTForms'
+        'wtforms',
     ],
     tests_require=[
         'nose',

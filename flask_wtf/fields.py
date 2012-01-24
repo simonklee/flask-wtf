@@ -1,8 +1,25 @@
-from flask import request
+from __future__ import with_statement, absolute_import
 
+from flask import request
 from wtforms import FileField as _FileField
 from wtforms import ValidationError
+from wtforms.fields import Field
 
+from .widgets import RecaptchaWidget
+from .validators import Recaptcha
+
+__all__ = ['FileField', 'FileRequired', 'file_required',
+        'FileAllowed', 'file_allowed', 'RecaptchaField']
+
+class RecaptchaField(Field):
+    widget = RecaptchaWidget()
+
+    # error message if recaptcha validation fails
+    recaptcha_error = None
+
+    def __init__(self, label='', validators=None, **kwargs):
+        validators = validators or [Recaptcha()]
+        super(RecaptchaField, self).__init__(label, validators, **kwargs)
 
 class FileField(_FileField):
     """
@@ -64,4 +81,3 @@ class FileAllowed(object):
             raise ValidationError, self.message
 
 file_allowed = FileAllowed
-    

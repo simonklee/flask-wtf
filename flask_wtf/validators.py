@@ -1,9 +1,7 @@
 import urllib2
 
 from flask import request, current_app
-
 from wtforms import ValidationError
-
 from werkzeug import url_encode
 
 RECAPTCHA_VERIFY_SERVER = 'http://api-verify.recaptcha.net/verify'
@@ -38,7 +36,7 @@ class Recaptcha(object):
 
     def _validate_recaptcha(self, challenge, response, remote_addr):
         """Performs the actual validation."""
-    
+
         if current_app.testing:
             return True
 
