@@ -26,6 +26,11 @@ class TestCase(unittest.TestCase):
     def setUp(self):
         self.app = self.create_app()
         self.client = self.app.test_client()
+        self.ctx = self.app.test_request_context()
+        self.ctx.push()
+
+    def tearDown(self):
+        self.ctx.pop()
 
     def create_app(self):
         class MyForm(Form):
@@ -142,10 +147,6 @@ class TextUploadForm(Form):
                                    file_allowed(text)])
 
 class TestFileUpload(TestCase):
-    def setUp(self):
-        self.app = self.create_app()
-        self.client = self.app.test_client()
-
     def create_app(self):
         app = super(TestFileUpload, self).create_app()
         app.config['CSRF_ENABLED'] = False
