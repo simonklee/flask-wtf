@@ -6,7 +6,8 @@ from werkzeug import url_encode
 
 RECAPTCHA_VERIFY_SERVER = 'http://api-verify.recaptcha.net/verify'
 
-__all__ = ["Recaptcha"]
+__all__ = ['Recaptcha', 'FileRequired', 'file_required',
+        'FileAllowed', 'file_allowed', ]
 
 class Recaptcha(object):
     """Validates a ReCaptcha."""
@@ -69,3 +70,51 @@ class Recaptcha(object):
                 raise RuntimeError(self._error_codes[error])
 
         return False
+
+recaptcha = Recaptcha
+
+class FileRequired(object):
+    """
+    Validates that field has a **FileStorage** instance
+    attached.
+
+    `message` : error message
+
+    You can also use the synonym **file_required**.
+    """
+
+    def __init__(self, message=None):
+        self.message=message
+
+    def __call__(self, form, field):
+        file = getattr(field, "file", None)
+
+        if not file:
+            raise ValidationError, self.message
+
+file_required = FileRequired
+
+class FileAllowed(object):
+    """
+    Validates that the uploaded file is allowed by the given
+    Flask-Uploads UploadSet.
+
+    `upload_set` : instance of **flaskext.uploads.UploadSet**
+
+    `message`    : error message
+
+    You can also use the synonym **file_allowed**.
+    """
+
+    def __init__(self, upload_set, message=None):
+        self.upload_set = upload_set
+        self.message = message
+
+    def __call__(self, form, field):
+        file = getattr(field, "file", None)
+
+        if file is not None and \
+            not self.upload_set.file_allowed(file, file.filename):
+            raise ValidationError, self.message
+
+file_allowed = FileAllowed
