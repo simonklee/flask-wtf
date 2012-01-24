@@ -26,7 +26,7 @@ try:
 except ImportError:
     pass
 
-class RecaptchaField(Field):
+class RecaptchaField(wtforms.Field):
     widget = RecaptchaWidget()
 
     # error message if recaptcha validation fails
@@ -36,7 +36,7 @@ class RecaptchaField(Field):
         validators = validators or [Recaptcha()]
         super(RecaptchaField, self).__init__(label, validators, **kwargs)
 
-class FileField(FileField):
+class FileField(wtforms.FileField):
     """
     Subclass of **wtforms.FileField** providing a `file` property
     returning the relevant **FileStorage** instance in **request.files**.

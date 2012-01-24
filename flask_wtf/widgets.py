@@ -1,16 +1,15 @@
-try:
-    import json
-except ImportError:
-    import simplejson as json
-
 import wtforms
 
 from wtforms.widgets import *
 from flask import current_app
 from werkzeug import url_encode
 
-# use flaskext.babel for translations, if available
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
+# use flaskext.babel for translations, if available
 try:
     from flaskext.babel import gettext as _
 except ImportError:
@@ -32,7 +31,6 @@ __all__ = ["RecaptchaWidget"]
 __all__ += wtforms.widgets.core.__all__
 
 class RecaptchaWidget(object):
-
     def recaptcha_html(self, server, query, options):
         return RECAPTCHA_HTML % dict(
             script_url='%schallenge?%s' % (server, query),
