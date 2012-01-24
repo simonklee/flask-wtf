@@ -5,11 +5,11 @@ import unittest
 
 from flask import Flask, render_template, jsonify
 from flaskext.uploads import UploadSet, IMAGES, TEXT, configure_uploads
-from flask.ext.wtf import Form, TextField, FileField, HiddenField, \
+from flask.ext.wtf import Form, StringField, FileField, HiddenField, \
         SubmitField, Required, FieldList, file_required, file_allowed, html5
 
 class DummyField(object):
-    def __init__(self, data, name='f', label='', id='', type='TextField'):
+    def __init__(self, data, name='f', label='', id='', type='StringField'):
         self.data = data
         self.name = name
         self.label = label
@@ -29,7 +29,7 @@ class TestCase(unittest.TestCase):
 
     def create_app(self):
         class MyForm(Form):
-            name = TextField("Name", validators=[Required()])
+            name = StringField("Name", validators=[Required()])
             submit = SubmitField("Submit")
 
         class HiddenFieldsForm(Form):

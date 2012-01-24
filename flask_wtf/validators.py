@@ -1,13 +1,16 @@
 import urllib2
 
+import wtforms
+
 from flask import request, current_app
-from wtforms import ValidationError
 from werkzeug import url_encode
+from wtforms.validators import *
 
 RECAPTCHA_VERIFY_SERVER = 'http://api-verify.recaptcha.net/verify'
 
 __all__ = ['Recaptcha', 'FileRequired', 'file_required',
         'FileAllowed', 'file_allowed', ]
+__all__ += wtforms.validators.__all__
 
 class Recaptcha(object):
     """Validates a ReCaptcha."""
@@ -29,11 +32,11 @@ class Recaptcha(object):
         remote_ip = request.remote_addr
 
         if not challenge or not response:
-            raise ValidationError('This field is required.')
+            raise wtforms.ValidationError('This field is required.')
 
         if not self._validate_recaptcha(challenge, response, remote_ip):
             field.recaptcha_error = 'incorrect-captcha-sol'
-            raise ValidationError(self.message)
+            raise wtforms.ValidationError(self.message)
 
     def _validate_recaptcha(self, challenge, response, remote_addr):
         """Performs the actual validation."""
@@ -90,7 +93,7 @@ class FileRequired(object):
         file = getattr(field, "file", None)
 
         if not file:
-            raise ValidationError, self.message
+            raise wtforms.ValidationError, self.message
 
 file_required = FileRequired
 
@@ -115,6 +118,6 @@ class FileAllowed(object):
 
         if file is not None and \
             not self.upload_set.file_allowed(file, file.filename):
-            raise ValidationError, self.message
+            raise wtforms.ValidationError, self.message
 
 file_allowed = FileAllowed

@@ -3,6 +3,9 @@ try:
 except ImportError:
     import simplejson as json
 
+import wtforms
+
+from wtforms.widgets import *
 from flask import current_app
 from werkzeug import url_encode
 
@@ -26,6 +29,7 @@ RECAPTCHA_HTML = u'''
 '''
 
 __all__ = ["RecaptchaWidget"]
+__all__ += wtforms.widgets.core.__all__
 
 class RecaptchaWidget(object):
 

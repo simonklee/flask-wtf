@@ -1,13 +1,30 @@
 from __future__ import with_statement, absolute_import
 
+import wtforms
 from flask import request
-from wtforms import FileField as _FileField
-from wtforms.fields import Field
+from wtforms.fields import *
 
 from .widgets import RecaptchaWidget
 from .validators import Recaptcha
 
 __all__ = ['FileField', 'RecaptchaField']
+__all__ += wtforms.fields.core.__all__
+__all__ += wtforms.fields.simple.__all__
+
+try:
+    import sqlalchemy
+    from wtforms.ext.sqlalchemy.fields import QuerySelectField, \
+        QuerySelectMultipleField
+
+    __all__ += ['QuerySelectField',
+                'QuerySelectMultipleField']
+
+    for field in (QuerySelectField,
+                  QuerySelectMultipleField):
+
+        setattr(fields, field.__name__, field)
+except ImportError:
+    pass
 
 class RecaptchaField(Field):
     widget = RecaptchaWidget()
@@ -19,7 +36,7 @@ class RecaptchaField(Field):
         validators = validators or [Recaptcha()]
         super(RecaptchaField, self).__init__(label, validators, **kwargs)
 
-class FileField(_FileField):
+class FileField(FileField):
     """
     Subclass of **wtforms.FileField** providing a `file` property
     returning the relevant **FileStorage** instance in **request.files**.
