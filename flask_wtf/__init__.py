@@ -6,8 +6,9 @@ from .fields import *
 from .forms import *
 from .validators import *
 from .widgets import *
+from wtforms import ValidationError
 
-__all__  = ['wtforms.ValidationError', 'html5']
+__all__  = ['ValidationError', 'html5']
 __all__ += fields.__all__
 __all__ += forms.__all__
 __all__ += validators.__all__
