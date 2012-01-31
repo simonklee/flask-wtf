@@ -1,12 +1,22 @@
 from __future__ import absolute_import
 
-import wtforms
 import jinja2
+import wtforms
 
 from flask import request, session, current_app
 from wtforms.ext.csrf.session import SessionSecureForm
+from wtforms.fields import HiddenField
 
 __all__ = ['Form']
+__all__ += wtforms.form.__all__
+
+try:
+    from wtforms.ext.csrf.forms import *
+    from wtforms.ext.csrf.session import *
+    __all__ += wtforms.ext.csrf.form.__all__
+    __all__ += wtforms.ext.session.form.__all__
+except ImportError:
+    pass
 
 class Form(SessionSecureForm):
     "Implements a SessionSecureForm using app.SECRET_KEY and flask.session obj"
@@ -16,7 +26,7 @@ class Form(SessionSecureForm):
         if csrf_enabled is None:
             self.csrf_enabled = current_app.config.get('CSRF_ENABLED', True)
 
-        self.SECRET_KEY = current_app.config.get('SECRET_KEY', '_csrf_token')
+        self.SECRET_KEY = current_app.config.get('CSRF_SESSION_KEY', '_csrf_token')
         super(Form, self).__init__(formdata, obj, prefix, session, **kwargs)
 
     def is_submitted(self):
@@ -36,7 +46,7 @@ class Form(SessionSecureForm):
     def hidden_fields(self, *fields):
         "hidden fields in a hidden DIV tag, in order to keep XHTML compliance."
         if not fields:
-            fields = [f for f in self if isinstance(f, wtforms.fields.HiddenField)]
+            fields = [f for f in self if isinstance(f, HiddenField)]
 
         rv = [u'<div style="display:none;">']
 

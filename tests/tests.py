@@ -1,13 +1,14 @@
 from __future__ import with_statement
 
-import re
 import unittest
 
 from flask import Flask, render_template, jsonify, Request
 from flaskext.uploads import UploadSet, IMAGES, TEXT, configure_uploads
-from flask.ext.wtf import Form, StringField, FileField, HiddenField, \
-        SubmitField, Required, FieldList, file_required, file_allowed, html5
 from werkzeug.test import EnvironBuilder
+from wtforms import StringField, HiddenField, SubmitField, FieldList
+from wtforms.validators import Required
+
+from flask.ext.wtf import Form, html5, files
 
 class DummyField(object):
     def __init__(self, data, name='f', label='', id='', type='StringField'):
@@ -107,20 +108,20 @@ images = UploadSet("images", IMAGES)
 text = UploadSet("text", TEXT)
 
 class FileUploadForm(Form):
-    upload = FileField("Upload file")
+    upload = files.FileField("Upload file")
 
 class MultipleFileUploadForm(Form):
-    uploads = FieldList(FileField("upload"), min_entries=3)
+    uploads = FieldList(files.FileField("upload"), min_entries=3)
 
 class ImageUploadForm(Form):
-    upload = FileField("Upload file",
-                       validators=[file_required(),
-                                   file_allowed(images)])
+    upload = files.FileField("Upload file",
+                       validators=[files.file_required(),
+                                   files.file_allowed(images)])
 
 class TextUploadForm(Form):
-    upload = FileField("Upload file",
-                       validators=[file_required(),
-                                   file_allowed(text)])
+    upload = files.FileField("Upload file",
+                       validators=[files.file_required(),
+                                   files.file_allowed(text)])
 
 class TestFileUpload(TestCase):
     def create_app(self):

@@ -1,3 +1,5 @@
 ve/
+build/
+_build/
 *.pyc
 *.egg-info

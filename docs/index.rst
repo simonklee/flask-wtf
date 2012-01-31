@@ -3,147 +3,110 @@ Flask-WTF
 
 .. module:: Flask-WTF
 
-**Flask-WTF** offers simple integration with `WTForms <http://wtforms.simplecodes.com/docs/0.6/>`_. This integration
-includes optional CSRF handling for greater security.
-
-Source code and issue tracking at `Bitbucket`_.
+**Flask-WTF** offers simple integration with `WTForms <http://wtforms.simplecodes.com/docs/dev/>`_. 
+Source code and issue tracking at `Github`_.
 
 Installing Flask-WTF
 ---------------------
 
 Install with **pip** and **easy_install**::
 
-    pip install Flask-WTF
+    pip install git+git://github.com/simonz05/flask-wtf.git
 
-or download the latest version from Bitbucket::
+Or download manually from `Github`_::
 
-    hg clone http://bitbucket.org/danjac/flask-wtf
+    git clone git://github.com/simonz05/flask-wtf.git
 
     cd flask-wtf
 
     python setup.py develop
 
-If you are using **virtualenv**, it is assumed that you are installing Flask-WTF
-in the same virtualenv as your Flask application(s).
-
 Configuring Flask-WTF
 ----------------------
 
-The following settings are used with **Flask-WTF**:
+The following optional settings are used with **Flask-WTF**:
 
-    * ``CSRF_ENABLED`` default ``True``
+    * ``CSRF_ENABLED`` default ``True``. You can disable csrf on individual
+      forms by passing ``csrf_enabled=False`` to the constructor.
     * ``CSRF_SESSION_KEY`` default ``_csrf_token``
 
-``CSRF_ENABLED`` enables CSRF. You can disable by passing in the ``csrf_enabled`` parameter to your form::
+Using Flask-WTF 
+---------------
 
-    form = MyForm(csrf_enabled=False)
+.. seealso::
 
-Generally speaking it's a good idea to enable CSRF. If you wish to disable checking in certain circumstances - for
-example, in unit tests - you can set ``CSRF_ENABLED`` to **False** in your configuration.
+    The API reference for :ref:`Form-api`.
 
-**NOTE:** Previous to version **0.5.2**, **Flask-WTF** automatically skipped CSRF validation in the case of AJAX
-POST requests, as AJAX toolkits added headers such as ``X-Requested-With`` when using the XMLHttpRequest and browsers
-enforced a strict same-origin policy.
+**Flask-WTF** implementes a simple Form class. This class adds a few methods
+in addition to the ones provided by `wtforms.Form`.
 
-However it has since come to light that various browser plugins can circumvent these measures, rendering AJAX requests
-insecure by allowing forged requests to appear as an AJAX request.
+.. method:: Form.hidden_fields(\*fields)
 
-Therefore CSRF checking will now be applied to all POST requests, unless you disable CSRF at your own risk through the options
-described above.
+    Return hidden fields in a hidden DIV tag, in order to keep XHTML compliance.
 
-You can pass in the CSRF field manually in your AJAX request by accessing the **csrf** field in your form directly::
+.. method:: Form.is_submitted()
 
-    var params = {'csrf' : '{{ form.csrf }}'};
+    Check if request method is either PUT or POST.
 
-A more complete description of the issue can be found `here <http://www.djangoproject.com/weblog/2011/feb/08/security/>`_.
+.. method:: Form.validate_on_submit()
 
-One common pattern in wtforms is `enclosed forms <http://wtforms.simplecodes.com/docs/0.6.1/fields.html#field-enclosures>`_. For example::
+    Only call form.validate() if request method was either PUT or POST.
 
-    class TelephoneForm(Form):
-        country_code = IntegerField('Country Code', [validators.required()])
-        area_code    = IntegerField('Area Code/Exchange', [validators.required()])
-        number       = TextField('Number')
+The following is an example of how to create a form. ::
 
-    class ContactForm(Form):
-        first_name   = TextField()
-        last_name    = TextField()
-        mobile_phone = FormField(TelephoneForm)
-        office_phone = FormField(TelephoneForm)
+    from flask.ext.wtf import Form
+    from wtforms import fields, validators 
 
-The problem with using the ``Form`` class provided by Flask-WTF is that the class will automatically include the CSRF validation. You don't need this for every single form - just the enclosing "master" form.  
+    class FooForm(Form):
+        name = fields.StringField(name, validators=[validators.Required()])
 
-The easiest way to do this is to just override the enclosed form constructor::
+``Form`` is a subclass of ``wtforms.ext.csrf.session.SecureForm`` and will
+use Flask sessions to keep a csrf key between requests. 
 
-    class TelephoneForm(Form):
-        country_code = IntegerField('Country Code', [validators.required()])
-        area_code    = IntegerField('Area Code/Exchange', [validators.required()])
-        number       = TextField('Number')
-
-        def __init__(self, *args, **kwargs):
-            kwargs['csrf_enabled'] = False
-            super(TelephoneForm, self).__init__(*args, **kwargs)
-
-This will disable CSRF validation for all ``TelephoneForm`` instances.
-
-The ``CSRF_SESSION_KEY`` sets the key used in the Flask session for storing the generated token string. Usually
-the default should suffice, in certain cases you might want a custom key (for example, having several forms in a
-single page).
-
-Both these settings can be overriden in the ``Form`` constructor by passing in ``csrf_enabled`` and ``csrf_session_key``
-optional arguments respectively.
-
-In addition, there are additional configuration settings required for Recaptcha integration : see below.
-
-Creating forms
---------------
-
-**Flask-WTF** provides you with all the API features of WTForms. For example::
-
-    from flaskext.wtf import Form, TextField, Required
-
-    class MyForm(Form):
-        name = TextField(name, validators=[Required()])
-
-In addition, a CSRF token hidden field is created. You can print this in your template as any other field::
-
+By default a CSRF token hidden field is created. You can print this in your
+template as any other field. ::
     
-    <form method="POST" action=".">
-        {{ form.csrf }}
+    <form method="POST" action="">
+        {{ form.csrf_token }}
         {{ form.name.label }} {{ form.name(size=20) }}
-        <input type="submit" value="Go">
+        <input type="submit" value="Submit">
     </form>
 
-However, in order to create valid XHTML/HTML the ``Form`` class has a method ``hidden_tag`` which renders any
-hidden fields, including the CSRF field, inside a hidden DIV tag::
+Or simply by using :func:`~flask.ext.wtf.Form.hidden_fields` which renders any
+hidden fields, including the CSRF field, inside a hidden DIV tag. ::
     
-    <form method="POST" action=".">
-        {{ form.hidden_tag() }}
+    {{ form.hidden_fields() }}
 
 Using the 'safe' filter
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
-The **safe** filter used to be required with WTForms in Jinja2 templates, otherwise your markup would be escaped. For example:
-
-    {{ form.name|safe }}
-
-However widgets in the latest version of WTForms return a `HTML safe string <http://jinja.pocoo.org/2/documentation/api#jinja2.Markup>`_ so you shouldn't need to use **safe**.
-
-Ensure you are running the latest stable version of WTForms so that you don't need to use this filter everywhere.
+The **safe** filter used to be required with WTForms in Jinja2 templates,
+otherwise your markup would be escaped.  However widgets in the recent versions
+of WTForms return a `HTML safe string
+<http://jinja.pocoo.org/2/documentation/api#jinja2.Markup>`_ so you shouldn't
+need to use **safe**.
 
 File uploads
 ------------
+.. seealso::
 
-The ``Form`` instance automatically appends a ``file`` attribute to any ``FileField`` field instances if the form is posted.
+    The API reference for :ref:`Files-api`.
 
-This ``file`` attribute is an instance of `Werkzeug FileStorage <http://werkzeug.pocoo.org/documentation/0.5.1/datastructures.html#werkzeug.FileStorage>`_ instance from ``request.files``.
+The ``Form`` instance automatically appends a ``file`` attribute to any
+``FileField`` field instances if the form is posted.
+
+This ``file`` attribute is an instance of `Werkzeug FileStorage
+<http://werkzeug.pocoo.org/docs/datastructures/#werkzeug.datastructures.FileStorage>`_
+instance from ``request.files``.
 
 For example::
 
+    from flask.ext.wtf import Form, files
     from werkzeug import secure_filename
 
     class PhotoForm(Form):
 
-        photo = FileField("Your photo")
+        photo = files.FileField("Your photo")
 
     @app.route("/upload/", methods=("GET", "POST"))
     def upload():
@@ -157,47 +120,52 @@ For example::
                                form=form,
                                filename=filename)
 
-It's recommended you use **werkzeug.secure_filename** on any uploaded files as shown in the example to prevent malicious attempts to access your filesystem.
+It's recommended you use `werkzeug.secure_filename
+<http://werkzeug.pocoo.org/docs/utils/#werkzeug.utils.secure_filename>`_
+on any uploaded files as shown in the example to prevent malicious attempts to
+access your filesystem.
 
-Remember to set the ``enctype`` of your HTML form to ``multipart/form-data`` to enable file uploads::
+Remember to set the ``enctype`` of your HTML form to ``multipart/form-data`` to
+enable file uploads::
 
     <form action="." method="POST" enctype="multipart/form-data">
         ....
     </form>
 
-**Note:**  as of version **0.4** all **FileField** instances have access to the corresponding **FileStorage** object
-in **request.files**, including those embedded in **FieldList** instances.
-
-
 Validating file uploads
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
-**Flask-WTF** supports validation through the `Flask Uploads <http://packages.python.org/Flask-Uploads/>`_ extension. If you use this (highly recommended) extension you can use it to add validation to your file fields. For example::
+**Flask-WTF** supports validation through the `Flask Uploads
+<http://packages.python.org/Flask-Uploads/>`_ extension. If you use this
+extension you can use it to add validation to your file fields. For example::
 
-
-    from flaskext.uploads import UploadSet, IMAGES
-    from flaskext.wtf import Form, FileField, file_allowed, \
-        file_required
+    from flask.ext.uploads import UploadSet, IMAGES
+    from flask.ext.wtf import Form, files
 
     images = UploadSet("images", IMAGES)
 
     class UploadForm(Form):
+        upload = files.FileField("Upload your image", 
+                           validators=[files.FileRequired(),
+                                       files.FileAllowed(images, "Images only!")])
 
-        upload = FileField("Upload your image", 
-                           validators=[file_required(),
-                                       file_allowed(images, "Images only!")])
-
-In the above example, only image files (JPEGs, PNGs etc) can be uploaded. The **file_required** validator, which does not require **Flask-Uploads**, will raise a validation error if the field does not contain a **FileStorage** object.
-
+In the above example, only image files (JPEGs, PNGs etc) can be uploaded. The
+:class:`~flask.ext.wtf.files.FileRequired` validator, which does not require **Flask-Uploads**, will
+raise a validation error if the field does not contain a **FileStorage** object.
 
 HTML5 widgets
 -------------
 
-**Flask-WTF** supports a number of HTML5 widgets. Of course, these widgets must be supported by your target browser(s) in order to be properly used.
+.. seealso::
 
-HTML5-specific widgets are available under the **flaskext.wtf.html5** package::
+    The API reference for :ref:`HTML5-api`.
 
-    from flaskext.wtf.html5 import URLField
+**Flask-WTF** supports a number of HTML5 widgets. Of course, these widgets must
+be supported by your target browser(s) in order to be properly used.
+
+HTML5-specific widgets are available under the **flask.ext.wtf.html5** package::
+
+    from flask.ext.wtf.html5 import URLField
 
     class LinkForm():
 
@@ -208,99 +176,139 @@ See the `API`_ for more details.
 Recaptcha
 ---------
 
+.. seealso::
+
+    The API reference for :ref:`Recaptcha-api`.
+
 **Flask-WTF** also provides Recaptcha support through a ``RecaptchaField``::
     
-    from flaskext.wtf import Form, TextField, RecaptchaField
+    from flask.ext.wtf import Form, recaptcha
+    from wtforms import fields
 
     class SignupForm(Form):
-        username = TextField("Username")
-        recaptcha = RecaptchaField()
+        username = fields.StringField("Username")
+        recaptcha = recaptcha.RecaptchaField()
 
-This field handles all the nitty-gritty details of Recaptcha validation and output. The following settings 
-are required in order to use Recaptcha:
+This field handles all the nitty-gritty details of Recaptcha validation and
+output. The following settings are required in order to use Recaptcha:
 
     * ``RECAPTCHA_USE_SSL`` : default ``False``
     * ``RECAPTCHA_PUBLIC_KEY``
     * ``RECAPTCHA_PRIVATE_KEY``
     * ``RECAPTCHA_OPTIONS`` 
 
-``RECAPTCHA_OPTIONS`` is an optional dict of configuration options. The public and private keys are required in
-order to authenticate your request with Recaptcha - see `documentation <https://www.google.com/recaptcha/admin/create>`_ for details on how to obtain your keys.
+``RECAPTCHA_OPTIONS`` is an optional dict of configuration options. The public
+and private keys are required in order to authenticate your request with
+Recaptcha - see `documentation <https://www.google.com/recaptcha/admin/create>`_
+for details on how to obtain your keys.
 
-Under test conditions (i.e. Flask app ``testing`` is ``True``) Recaptcha will always validate - this is because it's hard to know the correct Recaptcha image when running tests. Bear in mind that you need to pass the data to `recaptcha_challenge_field` and `recaptcha_response_field`, not `recaptcha`::
+Under test conditions (i.e. Flask app ``testing`` is ``True``) Recaptcha will
+always validate - this is because it's hard to know the correct Recaptcha image
+when running tests. Bear in mind that you need to pass the data to
+`recaptcha_challenge_field` and `recaptcha_response_field`, not `recaptcha`::
 
     response = self.client.post("/someurl/", data={
                                 'recaptcha_challenge_field' : 'test',
                                 'recaptcha_response_field' : 'test'})
 
-If `flaskext-babel <http://packages.python.org/Flask-Babel/>`_ is installed then Recaptcha message strings can be localized.
+If `flaskext-babel <http://packages.python.org/Flask-Babel/>`_ is installed then
+Recaptcha message strings can be localized.
 
-API changes
------------
 
-The ``Form`` class provided by **Flask-WTF** is the same as for WTForms, but with a couple of changes. Aside from CSRF 
-validation, a convenience method ``validate_on_submit`` is added::
+CSRF
+----
 
-    from flask import Flask, request, flash, redirect, url_for, \
-        render_template
-    
-    from flaskext.wtf import Form, TextField
+Generally speaking it's a good idea to enable CSRF. If you wish to disable
+checking in certain circumstances - for example, in unit tests - you can set
+``CSRF_ENABLED`` to **False** in your configuration or set ``csrf_enabled`` 
+parameter on your form. ::
 
-    app = Flask(__name__)
+    form = FooForm(csrf_enabled=False)
 
-    class MyForm(Form):
-        name = TextField("Name")
+Therefore CSRF checking will now be applied to all POST requests, unless you
+disable CSRF at your own risk through the options described above.
 
-    @app.route("/submit/", methods=("GET", "POST"))
-    def submit():
-        
-        form = MyForm()
-        if form.validate_on_submit():
-            flash("Success")
-            return redirect(url_for("index"))
-        return render_template("index.html", form=form)
+You can pass in the CSRF field manually in your AJAX request by accessing the
+**csrf** field in your form directly. ::
 
-Note the difference from a pure WTForms solution::
+    var params = {'csrf' : '{{ form.csrf_token }}'};
 
-    from flask import Flask, request, flash, redirect, url_for, \
-        render_template
+A more complete description of the issue can be found `here
+<http://www.djangoproject.com/weblog/2011/feb/08/security/>`_.
 
-    from flaskext.wtf import Form, TextField
+One common pattern in wtforms is `enclosed forms
+<http://wtforms.simplecodes.com/docs/0.6.1/fields.html#field-enclosures>`_. For
+example. ::
 
-    app = Flask(__name__)
+    class TelephoneForm(Form):
+        country_code = IntegerField('Country Code', [validators.required()])
+        area_code    = IntegerField('Area Code/Exchange', [validators.required()])
+        number       = StringField('Number')
 
-    class MyForm(Form):
-        name = TextField("Name")
+    class ContactForm(Form):
+        first_name   = StringField()
+        last_name    = StringField()
+        mobile_phone = FormField(TelephoneForm)
+        office_phone = FormField(TelephoneForm)
 
-    @app.route("/submit/", methods=("GET", "POST"))
-    def submit():
-        
-        form = MyForm(request.form)
-        if request.method == "POST" and form.validate():
-            flash("Success")
-            return redirect(url_for("index"))
-        return render_template("index.html", form=form)
+The problem with using the ``Form`` class provided by Flask-WTF is that the
+class will automatically include the CSRF validation. You don't need this for
+every single form - just the enclosing "master" form.  
 
-``validate_on_submit`` will automatically check if the request method is PUT or POST.
+The easiest way to do this is to just override the enclosed form constructor::
 
-You don't need to pass ``request.form`` into your form instance, as the ``Form`` automatically populates from ``request.form`` unless
-specified. Other arguments are as with ``wtforms.Form``.
+    class TelephoneForm(Form):
+        country_code = IntegerField('Country Code', [validators.required()])
+        area_code    = IntegerField('Area Code/Exchange', [validators.required()])
+        number       = StringField('Number')
+
+        def __init__(self, *args, **kwargs):
+            kwargs['csrf_enabled'] = False
+            super(TelephoneForm, self).__init__(*args, **kwargs)
+
+This will disable CSRF validation for all ``TelephoneForm`` instances.
+
+The ``CSRF_SESSION_KEY`` sets the key used in the Flask session for storing the
+generated token string. Usually the default should suffice, in certain cases you
+might want a custom key (for example, having several forms in a single page).
+
+Both these settings can be overriden in the ``Form`` constructor by passing in
+``csrf_enabled`` and ``csrf_session_key`` optional arguments respectively.
+
+In addition, there are additional configuration settings required for Recaptcha
+integration : see below.
 
 API
 ---
 
-.. module:: flaskext.wtf
+.. _Form-api:
+
+Form
+^^^^
+.. module:: flask.ext.wtf
 
 .. autoclass:: Form
    :members:
-    
+
+.. _Recaptcha-api:
+
+Recaptcha
+^^^^^^^^^
+   
+.. module:: flask.ext.wtf.recaptcha
+
 .. autoclass:: RecaptchaField
 
 .. autoclass:: Recaptcha
 
 .. autoclass:: RecaptchaWidget
 
-.. module:: flaskext.wtf.file
+.. _Files-api:
+
+Files
+^^^^^
+
+.. module:: flask.ext.wtf.files
 
 .. autoclass:: FileField
    :members:
@@ -309,7 +317,12 @@ API
 
 .. autoclass:: FileRequired
 
-.. module:: flaskext.wtf.html5
+.. _HTML5-api:
+
+HTML5
+^^^^^
+
+.. module:: flask.ext.wtf.html5
 
 .. autoclass:: SearchInput
 
@@ -335,7 +348,5 @@ API
 
 .. autoclass:: DecimalRangeField
 
-
-
 .. _Flask: http://flask.pocoo.org
-.. _Bitbucket: http://bitbucket.org/danjac/flask-wtf
+.. _Github: http://github.com/simonz05/flask-wtf/
