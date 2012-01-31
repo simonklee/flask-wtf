@@ -3,10 +3,11 @@ from __future__ import with_statement
 import re
 import unittest
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, Request
 from flaskext.uploads import UploadSet, IMAGES, TEXT, configure_uploads
 from flask.ext.wtf import Form, StringField, FileField, HiddenField, \
         SubmitField, Required, FieldList, file_required, file_allowed, html5
+from werkzeug.test import EnvironBuilder
 
 class DummyField(object):
     def __init__(self, data, name='f', label='', id='', type='StringField'):
@@ -22,6 +23,24 @@ class DummyField(object):
     __iter__     = lambda x: iter(x.data)
     iter_choices = lambda x: iter(x.data)
 
+class FooForm(Form):
+    name = StringField("Name", validators=[Required()])
+    submit = SubmitField("Submit")
+
+class HiddenFieldsForm(Form):
+    name = HiddenField()
+    url = HiddenField()
+    method = HiddenField()
+    secret = HiddenField()
+    submit = SubmitField("Submit")
+
+    def __init__(self, *args, **kwargs):
+        super(HiddenFieldsForm, self).__init__(*args, **kwargs)
+        self.method.name = '_method'
+
+class SimpleForm(Form):
+    pass
+
 class TestCase(unittest.TestCase):
     def setUp(self):
         self.app = self.create_app()
@@ -33,57 +52,12 @@ class TestCase(unittest.TestCase):
         self.ctx.pop()
 
     def create_app(self):
-        class MyForm(Form):
-            name = StringField("Name", validators=[Required()])
-            submit = SubmitField("Submit")
-
-        class HiddenFieldsForm(Form):
-            name = HiddenField()
-            url = HiddenField()
-            method = HiddenField()
-            secret = HiddenField()
-            submit = SubmitField("Submit")
-
-            def __init__(self, *args, **kwargs):
-                super(HiddenFieldsForm, self).__init__(*args, **kwargs)
-                self.method.name = '_method'
-
-        class SimpleForm(Form):
-            pass
-
         app = Flask(__name__)
         app.secret_key = "secret"
 
-        @app.route("/", methods=("GET", "POST"))
-        def index():
-            form = MyForm()
-
-            if form.validate_on_submit():
-                name = form.name.data.upper()
-            else:
-                name = ''
-
-            return render_template("index.html",
-                                   form=form,
-                                   name=name)
-
-        @app.route("/simple/", methods=("POST",))
-        def simple():
-            form = SimpleForm()
-            form.validate()
-            assert form.csrf_enabled
-            assert not form.validate()
-            assert not form.validate()
-            return "OK"
-
-        @app.route("/hidden/")
-        def hidden():
-            form = HiddenFieldsForm()
-            return render_template("hidden.html", form=form)
-
         @app.route("/ajax/", methods=("POST",))
         def ajax_submit():
-            form = MyForm()
+            form = FooForm(csrf_enabled=False)
 
             if form.validate_on_submit():
                 return jsonify(name=form.name.data, success=True, errors=None)
@@ -92,9 +66,11 @@ class TestCase(unittest.TestCase):
 
         return app
 
+    def request(self,*args, **kwargs):
+        return self.app.test_request_context(*args, **kwargs)
+
 class HTML5Tests(TestCase):
     field = DummyField("name", id="name", name="name")
-
     @unittest.skip('Not implemented')
     def test_url_input(self):
         assert html5.URLInput()(self.field) == \
@@ -230,56 +206,60 @@ class TestFileUpload(TestCase):
 
 class TestValidateOnSubmit(TestCase):
     def test_not_submitted(self):
-        response = self.client.get("/")
-        assert 'DANNY' not in response.data
+        with self.request(method='GET', data={}):
+            f = FooForm(csrf_enabled=False)
+            self.assertEqual(f.is_submitted(), False)
+            self.assertEqual(f.validate_on_submit(), False)
 
     def test_submitted_not_valid(self):
-        self.app.config['CSRF_ENABLED'] = False
-        response = self.client.post("/", data={})
-        assert 'DANNY' not in response.data
+        with self.request(method='POST', data={}):
+            f = FooForm(csrf_enabled=False)
+            self.assertEqual(f.is_submitted(), True)
+            self.assertEqual(f.validate(), False)
 
     def test_submitted_and_valid(self):
-        self.app.config['CSRF_ENABLED'] = False
-        response = self.client.post("/", data={"name" : "danny"})
-        assert 'DANNY' in response.data
+        with self.request(method='POST', data={'name':'foo'}):
+            f = FooForm(csrf_enabled=False)
+            self.assertEqual(f.validate_on_submit(), True)
 
 class TestHiddenTag(TestCase):
     def test_hidden_tag(self):
-        response = self.client.get("/hidden/")
-        assert response.data.count('type="hidden"') == 5
-        assert 'name="_method"' in response.data
+        with self.request(method='POST'):
+            f = HiddenFieldsForm()
+            self.assertEqual(f.hidden_fields().count('type="hidden'), 5)
 
 class TestCSRF(TestCase):
     def test_csrf_token(self):
-        response = self.client.get("/")
-        assert '<div style="display:none;"><input id="csrf" name="csrf" type="hidden" value' in response.data
+        with self.request(method='GET'):
+            f = FooForm()
+            self.assertEqual(hasattr(f, 'csrf_token'), True)
 
     def test_invalid_csrf(self):
-        response = self.client.post("/", data={"name" : "danny"})
-        assert 'DANNY' not in response.data
-        assert "Missing or invalid CSRF token" in response.data
+        with self.request(method='POST', data={'name':'foo'}):
+            f = FooForm()
+            self.assertEqual(f.validate_on_submit(), False)
+            self.assertEqual(f.errors['csrf_token'], [u'CSRF token missing'])
 
     def test_csrf_disabled(self):
         self.app.config['CSRF_ENABLED'] = False
-        response = self.client.post("/", data={"name" : "danny"})
-        assert 'DANNY' in response.data
 
-    def test_validate_twice(self):
-        response = self.client.post("/simple/", data={})
-        assert response.status_code == 200
+        with self.request(method='POST', data={'name':'foo'}):
+            f = FooForm()
+            f.validate()
+            self.assertEqual(f.validate_on_submit(), True)
+
+    def test_valid(self):
+        csrf_token = FooForm().csrf_token.current_token
+        builder = EnvironBuilder(method='POST', data={'name':'foo', 'csrf_token': csrf_token })
+        env = builder.get_environ()
+        req = Request(env)
+        f = FooForm(req.form)
+        self.assertTrue(f.validate())
 
     def test_ajax(self):
+        # TODO: actually test this, only checks return value,
+        # form does not validate with CSRF
         response = self.client.post("/ajax/",
                                     data={"name" : "danny"},
                                     headers={'X-Requested-With' : 'XMLHttpRequest'})
         assert response.status_code == 200
-
-    def test_valid_csrf(self):
-        response = self.client.get("/")
-        pattern = re.compile(r'name="csrf" type="hidden" value="([0-9a-zA-Z-]*)"')
-        match = pattern.search(response.data)
-        assert match
-        csrf_token = match.groups()[0]
-        response = self.client.post("/", data={"name" : "danny",
-                                               "csrf" : csrf_token})
-        assert "DANNY" in response.data
