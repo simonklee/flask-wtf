@@ -1,4 +1,1 @@
-A fork of Flask-WTF
-
-Simple integration of Flask and WTForms, including CSRF, file upload
-and Recaptcha integration.
+include README.md

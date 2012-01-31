@@ -9,7 +9,7 @@ from setuptools import setup
 
 setup(
     name='Flask-WTF',
-    version='0.5.2',
+    version='0.6.4',
     url='http://github.org/simonz05/flask-wtf',
     license='BSD',
     author='Dan Jacob',
@@ -21,9 +21,10 @@ setup(
     include_package_data=True,
     zip_safe=False,
     platforms='any',
+    dependency_links=['https://bitbucket.org/simplecodes/wtforms/get/tip.tar.gz#egg=wtforms-0.6.4dev'],
     install_requires=[
         'Flask',
-        'wtforms',
+        'wtforms>=0.6.4dev'
     ],
     tests_require=[
         'nose',
