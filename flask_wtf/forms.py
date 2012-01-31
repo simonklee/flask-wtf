@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import jinja2
-import wtforms
 
 from flask import request, session, current_app
 from wtforms.ext.csrf.session import SessionSecureForm
