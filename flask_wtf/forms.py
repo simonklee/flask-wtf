@@ -7,17 +7,6 @@ from flask import request, session, current_app
 from wtforms.ext.csrf.session import SessionSecureForm
 from wtforms.fields import HiddenField
 
-__all__ = ['Form']
-__all__ += wtforms.form.__all__
-
-try:
-    from wtforms.ext.csrf.forms import *
-    from wtforms.ext.csrf.session import *
-    __all__ += wtforms.ext.csrf.form.__all__
-    __all__ += wtforms.ext.session.form.__all__
-except ImportError:
-    pass
-
 class Form(SessionSecureForm):
     "Implements a SessionSecureForm using app.SECRET_KEY and flask.session obj"
     def __init__(self, formdata=None, obj=None, prefix='', csrf_enabled=None, **kwargs):
