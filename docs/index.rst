@@ -171,8 +171,6 @@ HTML5-specific widgets are available under the **flask.ext.wtf.html5** package::
 
         url = URLField(validators=[url()])
 
-See the `API`_ for more details.
-
 Recaptcha
 ---------
 
@@ -267,16 +265,6 @@ The easiest way to do this is to just override the enclosed form constructor::
             super(TelephoneForm, self).__init__(*args, **kwargs)
 
 This will disable CSRF validation for all ``TelephoneForm`` instances.
-
-The ``CSRF_SESSION_KEY`` sets the key used in the Flask session for storing the
-generated token string. Usually the default should suffice, in certain cases you
-might want a custom key (for example, having several forms in a single page).
-
-Both these settings can be overriden in the ``Form`` constructor by passing in
-``csrf_enabled`` and ``csrf_session_key`` optional arguments respectively.
-
-In addition, there are additional configuration settings required for Recaptcha
-integration : see below.
 
 API
 ---
