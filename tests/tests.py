@@ -72,35 +72,19 @@ class TestCase(unittest.TestCase):
 
 class HTML5Tests(TestCase):
     field = DummyField("name", id="name", name="name")
-    @unittest.skip('Not implemented')
-    def test_url_input(self):
-        assert html5.URLInput()(self.field) == \
-        '<input id="name" name="name" type="url" value="name" />'
+    def test_valid(self):
+        tests = [
+            (html5.URLInput()(self.field), '<input id="name" name="name" type="url" value="name">'),
+            (html5.SearchInput()(self.field), '<input id="name" name="name" type="search" value="name">'),
+            (html5.DateInput()(self.field), '<input id="name" name="name" type="date" value="name">'),
+            (html5.EmailInput()(self.field), '<input id="name" name="name" type="email" value="name">'),
+            (html5.NumberInput()(self.field, min=0, max=10), '<input id="name" max="10" min="0" name="name" type="number" value="name">'),
+            (html5.NumberInput()(self.field, min=0, max=10), '<input id="name" max="10" min="0" name="name" type="number" value="name">'),
+            (html5.RangeInput()(self.field, min=0, max=10), '<input id="name" max="10" min="0" name="name" type="range" value="name">'),
+        ]
 
-    @unittest.skip('Not implemented')
-    def test_search_input(self):
-        assert html5.SearchInput()(self.field) == \
-        '<input id="name" name="name" type="search" value="name" />'
-
-    @unittest.skip('Not implemented')
-    def test_date_input(self):
-        assert html5.DateInput()(self.field) == \
-        '<input id="name" name="name" type="date" value="name" />'
-
-    @unittest.skip('Not implemented')
-    def test_email_input(self):
-        assert html5.EmailInput()(self.field) == \
-        '<input id="name" name="name" type="email" value="name" />'
-
-    @unittest.skip('Not implemented')
-    def test_number_input(self):
-        assert html5.NumberInput()(self.field, min=0, max=10) == \
-        '<input id="name" max="10" min="0" name="name" type="number" value="name" />'
-
-    @unittest.skip('Not implemented')
-    def test_range_input(self):
-        assert html5.RangeInput()(self.field, min=0, max=10) == \
-        '<input id="name" max="10" min="0" name="name" type="range" value="name" />'
+        for got, expected in tests:
+            self.assertEqual(got, expected)
 
 # FILE UPLOAD TESTS #
 
