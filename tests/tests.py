@@ -2,7 +2,7 @@ from __future__ import with_statement
 
 import unittest
 
-from flask import Flask, render_template, jsonify, Request
+from flask import Flask, render_template, jsonify, Request, request
 from flaskext.uploads import UploadSet, IMAGES, TEXT, configure_uploads
 from werkzeug.test import EnvironBuilder
 from wtforms import StringField, HiddenField, SubmitField, FieldList
@@ -192,32 +192,33 @@ class TestFileUpload(TestCase):
 class TestValidateOnSubmit(TestCase):
     def test_not_submitted(self):
         with self.request(method='GET', data={}):
-            f = FooForm(csrf_enabled=False)
+            f = FooForm(request.form, csrf_enabled=False)
             self.assertEqual(f.is_submitted(), False)
             self.assertEqual(f.validate_on_submit(), False)
 
     def test_submitted_not_valid(self):
         with self.request(method='POST', data={}):
-            f = FooForm(csrf_enabled=False)
+            f = FooForm(request.form, csrf_enabled=False)
             self.assertEqual(f.is_submitted(), True)
             self.assertEqual(f.validate(), False)
 
     def test_submitted_and_valid(self):
         with self.request(method='POST', data={'name':'foo'}):
-            f = FooForm(csrf_enabled=False)
+            f = FooForm(request.form, csrf_enabled=False)
             self.assertEqual(f.validate_on_submit(), True)
 
 class TestHiddenTag(TestCase):
     def test_hidden_tag(self):
         with self.request(method='POST'):
-            f = HiddenFieldsForm()
+            f = HiddenFieldsForm(request.form)
             self.assertEqual(f.hidden_fields().count('type="hidden'), 5)
 
 class TestCSRF(TestCase):
     def test_csrf_token(self):
         with self.request(method='GET'):
-            f = FooForm()
+            f = FooForm(request.form)
             self.assertEqual(hasattr(f, 'csrf_token'), True)
+            self.assertEqual(f.validate(), False)
 
     def test_invalid_csrf(self):
         with self.request(method='POST', data={'name':'foo'}):
@@ -229,7 +230,7 @@ class TestCSRF(TestCase):
         self.app.config['CSRF_ENABLED'] = False
 
         with self.request(method='POST', data={'name':'foo'}):
-            f = FooForm()
+            f = FooForm(request.form)
             f.validate()
             self.assertEqual(f.validate_on_submit(), True)
 

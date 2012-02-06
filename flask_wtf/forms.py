@@ -46,11 +46,3 @@ class Form(SessionSecureForm):
         rv.append(u"</div>")
 
         return jinja2.Markup(u"".join(rv))
-
-    def process(self, formdata=None, obj=None, **kwargs):
-        try:
-            if formdata is None:
-                formdata = request.form
-        except AttributeError:
-            pass
-        super(Form, self).process(formdata, obj, **kwargs)

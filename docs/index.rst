@@ -101,7 +101,7 @@ instance from ``request.files``.
 
 For example::
 
-    from flask.ext.wtf import Form, files
+    from flask.ext.wtf import Form, files, request
     from werkzeug import secure_filename
 
     class PhotoForm(Form):
@@ -110,7 +110,7 @@ For example::
 
     @app.route("/upload/", methods=("GET", "POST"))
     def upload():
-        form = PhotoForm()
+        form = PhotoForm(request.form)
         if form.validate_on_submit():
             filename = secure_filename(form.photo.file.filename)
         else:
